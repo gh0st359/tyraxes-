@@ -7,7 +7,7 @@ description: Red-team findings and engagement report structure — severity, evi
 
 ## Finding note template
 
-Write each finding to `.grok/redteam/findings/<id>-<slug>.md`:
+Write each finding to `.tyraxes/redteam/findings/<id>-<slug>.md`:
 
 ```markdown
 # <Title>
@@ -22,7 +22,7 @@ Write each finding to `.grok/redteam/findings/<id>-<slug>.md`:
 
 ## Final report
 
-Under `.grok/redteam/report/`:
+Under `.tyraxes/redteam/report/`:
 
 1. Executive summary (business risk, access achieved, top issues)
 2. Scope and methodology

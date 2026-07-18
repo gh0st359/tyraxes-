@@ -253,12 +253,12 @@ env_key = "OPENROUTER_API_KEY"
 api_backend = "chat_completions"
 context_window = 200000
 agent_type = "red-team"
-extra_headers = { "HTTP-Referer" = "https://x.ai/cli", "X-Title" = "Grok Red Team" }
+extra_headers = { "HTTP-Referer" = "https://github.com/gh0st359/tyraxes-", "X-Title" = "Tyraxes Red Team" }
 ```
 
 Ready-made blocks for OpenAI, OpenRouter, Ollama, and LM Studio are also
 written to `~/.grok/providers.presets.toml` on startup. See
-[Grok Red Team](30-red-team.md).
+[Tyraxes Red Team](30-red-team.md).
 
 ### Together AI
 

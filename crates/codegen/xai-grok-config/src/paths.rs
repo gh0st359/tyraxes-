@@ -1,7 +1,15 @@
-//! Filesystem locations for grok config files and binaries.
+//! Filesystem locations for Tyraxes config files and binaries.
+//!
+//! Preferred customer-facing home is `~/.tyraxes` / `$TYRAXES_HOME`.
+//! Legacy Grok locations (`~/.grok`, `$GROK_HOME`, `/etc/grok`) still work.
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
+
+use crate::branding::{
+    CLI_NAME, HOME_DIR_NAME, HOME_ENV, LEGACY_CLI_NAME, LEGACY_HOME_DIR_NAME, LEGACY_HOME_ENV,
+    LEGACY_SYSTEM_CONFIG_DIR, SYSTEM_CONFIG_DIR,
+};
 
 static GROK_HOME: OnceLock<PathBuf> = OnceLock::new();
 
@@ -11,70 +19,113 @@ const CLAUDE_MANAGED_SETTINGS_PATH: &str =
 #[cfg(target_os = "linux")]
 const CLAUDE_MANAGED_SETTINGS_PATH: &str = "/etc/claude-code/managed-settings.json";
 
-/// The default user grok directory (`~/.grok`, canonicalized) used when
-/// `GROK_HOME` is unset. Exposed so callers (e.g. display helpers) can detect
-/// whether [`grok_home()`] is the default without duplicating the computation.
-///
-/// Uses [`dunce::canonicalize`] instead of [`std::fs::canonicalize`]: on
-/// Windows, std returns a verbatim path (`\\?\C:\Users\...`) which external
-/// tools choke on — e.g. `git clone` rejects `\\?\` destinations with
-/// "Invalid argument", breaking marketplace cache clones under
-/// `~/.grok/marketplace-cache`. `dunce` strips the prefix whenever the path
-/// is safely representable in legacy form; on non-Windows it is identical to
-/// `std::fs::canonicalize`.
-///
-/// Keep the dunce canonicalization in sync with the hand-rolled duplicate in
-/// `xai_fast_worktree::db::resolve_grok_home` (deliberately standalone crate).
-pub fn default_grok_home() -> PathBuf {
+fn canonical_home_root() -> PathBuf {
     #[allow(deprecated)]
     let home = std::env::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    dunce::canonicalize(&home).unwrap_or(home).join(".grok")
+    // Uses [`dunce::canonicalize`] instead of [`std::fs::canonicalize`]: on
+    // Windows, std returns a verbatim path (`\\?\C:\Users\...`) which external
+    // tools choke on — e.g. `git clone` rejects `\\?\` destinations.
+    dunce::canonicalize(&home).unwrap_or(home)
 }
 
-/// Per-user config directory: `$GROK_HOME` or `~/.grok`. Created if needed.
+/// Preferred new-install home: `~/.tyraxes`.
+pub fn default_tyraxes_home() -> PathBuf {
+    canonical_home_root().join(HOME_DIR_NAME)
+}
+
+/// Legacy default home (`~/.grok`) used when an existing install is detected
+/// or tests pin the old location. Keep the dunce canonicalization in sync
+/// with `xai_fast_worktree::db::resolve_grok_home`.
+pub fn default_grok_home() -> PathBuf {
+    canonical_home_root().join(LEGACY_HOME_DIR_NAME)
+}
+
+/// Resolve the per-user config directory without creating it.
+///
+/// Priority: `$TYRAXES_HOME` → `$GROK_HOME` → existing `~/.tyraxes` →
+/// existing `~/.grok` → new default `~/.tyraxes`.
+fn resolve_home_dir() -> PathBuf {
+    if let Ok(v) = std::env::var(HOME_ENV) {
+        return PathBuf::from(v);
+    }
+    if let Ok(v) = std::env::var(LEGACY_HOME_ENV) {
+        return PathBuf::from(v);
+    }
+    let tyraxes = default_tyraxes_home();
+    if tyraxes.is_dir() {
+        return tyraxes;
+    }
+    let legacy = default_grok_home();
+    if legacy.is_dir() {
+        return legacy;
+    }
+    tyraxes
+}
+
+/// Per-user config directory (Tyraxes-preferred, Grok-compatible). Created if needed.
 pub fn grok_home() -> PathBuf {
     GROK_HOME
         .get_or_init(|| {
-            let grok_home = if let Ok(v) = std::env::var("GROK_HOME") {
-                PathBuf::from(v)
-            } else {
-                default_grok_home()
-            };
-            let _ = std::fs::create_dir_all(&grok_home);
-            grok_home
+            let home = resolve_home_dir();
+            let _ = std::fs::create_dir_all(&home);
+            home
         })
         .clone()
 }
 
-/// The user-global grok home, but only when one genuinely resolves: `Some` when
-/// `$GROK_HOME` is set or a home directory is found, `None` otherwise. Unlike
-/// [`grok_home()`], this never falls back to a cwd-relative `.grok`, so callers
-/// that *scan* user-global grok resources (hooks, marketplace sources, ...) don't
-/// mistake a project's `.grok` tree for the user-global one when no home resolves.
+/// The user-global home, but only when one genuinely resolves: `Some` when
+/// `$TYRAXES_HOME` / `$GROK_HOME` is set or a home directory is found, `None`
+/// otherwise. Unlike [`grok_home()`], this never falls back to a cwd-relative
+/// project tree.
 pub fn user_grok_home() -> Option<PathBuf> {
     #[allow(deprecated)]
-    let resolvable = std::env::var_os("GROK_HOME").is_some() || std::env::home_dir().is_some();
+    let resolvable = std::env::var_os(HOME_ENV).is_some()
+        || std::env::var_os(LEGACY_HOME_ENV).is_some()
+        || std::env::home_dir().is_some();
     resolvable.then(grok_home)
 }
 
-/// Canonical grok application path: `$GROK_HOME/bin/grok` (Unix) or `grok.exe` (Windows).
+/// Canonical application path under the resolved home (`bin/tyraxes`, with
+/// `bin/grok` fallback when the new name is not present).
 pub fn grok_application() -> PathBuf {
     grok_application_in(&grok_home())
 }
 
-/// [`grok_application`] under an explicit home instead of `$GROK_HOME`.
+/// [`grok_application`] under an explicit home instead of the process home.
 pub fn grok_application_in(home: &std::path::Path) -> PathBuf {
-    let name = if cfg!(windows) { "grok.exe" } else { "grok" };
-    home.join("bin").join(name)
+    let tyraxes_name = if cfg!(windows) {
+        format!("{CLI_NAME}.exe")
+    } else {
+        CLI_NAME.to_string()
+    };
+    let grok_name = if cfg!(windows) {
+        format!("{LEGACY_CLI_NAME}.exe")
+    } else {
+        LEGACY_CLI_NAME.to_string()
+    };
+    let tyraxes = home.join("bin").join(&tyraxes_name);
+    if tyraxes.exists() {
+        tyraxes
+    } else {
+        home.join("bin").join(grok_name)
+    }
 }
 
-/// System-wide config directory: `/etc/grok/` on Unix, `None` on Windows.
+/// System-wide config directory on Unix (`/etc/tyraxes`, falling back to
+/// `/etc/grok` when that is the only one present). `None` on Windows.
 pub fn system_config_dir() -> Option<PathBuf> {
-    if cfg!(unix) {
-        Some(PathBuf::from("/etc/grok"))
-    } else {
-        None
+    if !cfg!(unix) {
+        return None;
     }
+    let preferred = PathBuf::from(SYSTEM_CONFIG_DIR);
+    if preferred.is_dir() {
+        return Some(preferred);
+    }
+    let legacy = PathBuf::from(LEGACY_SYSTEM_CONFIG_DIR);
+    if legacy.is_dir() {
+        return Some(legacy);
+    }
+    Some(preferred)
 }
 
 /// System path for the managed-settings.json used for settings compat, if it exists.
@@ -312,7 +363,32 @@ mod tests {
         // canonicalization must yield a plain path. No-op assertion on Unix.
         let home = default_grok_home();
         assert!(!home.to_string_lossy().starts_with(r"\\?\"));
-        assert!(home.ends_with(".grok"));
+        assert!(home.ends_with(LEGACY_HOME_DIR_NAME));
+    }
+
+    #[test]
+    fn default_tyraxes_home_has_no_verbatim_prefix() {
+        let home = default_tyraxes_home();
+        assert!(!home.to_string_lossy().starts_with(r"\\?\"));
+        assert!(home.ends_with(HOME_DIR_NAME));
+    }
+
+    #[test]
+    fn grok_application_prefers_tyraxes_when_present() {
+        let tmp = TempDir::new().unwrap();
+        let bin = tmp.path().join("bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        let tyraxes = bin.join(CLI_NAME);
+        std::fs::write(&tyraxes, b"x").unwrap();
+        std::fs::write(bin.join(LEGACY_CLI_NAME), b"x").unwrap();
+        assert_eq!(grok_application_in(tmp.path()), tyraxes);
+    }
+
+    #[test]
+    fn grok_application_falls_back_to_grok() {
+        let tmp = TempDir::new().unwrap();
+        let expected = tmp.path().join("bin").join(LEGACY_CLI_NAME);
+        assert_eq!(grok_application_in(tmp.path()), expected);
     }
 
     #[test]

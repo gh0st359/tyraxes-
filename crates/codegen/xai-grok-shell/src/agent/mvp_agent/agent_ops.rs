@@ -2733,10 +2733,10 @@ impl MvpAgent {
     /// 2. `acp_agent_profile` from ACP `_meta.agentProfile` (remote clients).
     /// 3. `agent_profile_path` from CLI `--agent-profile`.
     /// 4. `agent_config` from config.toml `[agent]`.
-    /// 5. `GROK_AGENT` env var.
+    /// 5. `TYRAXES_AGENT` / `GROK_AGENT` env var.
     /// 6. Built-in default agent.
     ///
-    /// `GROK_AGENT` and an explicit `[agent] name` bypass step 1.
+    /// `TYRAXES_AGENT` / `GROK_AGENT` and an explicit `[agent] name` bypass step 1.
     /// Strict-harness classification is structural — see
     /// [`xai_grok_agent::config::is_strict_harness_agent_type`].
     ///
@@ -2750,13 +2750,19 @@ impl MvpAgent {
         model_agent_type: Option<&str>,
     ) -> xai_grok_agent::AgentDefinition {
         use xai_grok_agent::AgentDefinition;
-        let grok_agent_env_set = std::env::var("GROK_AGENT")
+        let agent_env_name = std::env::var("TYRAXES_AGENT")
             .ok()
-            .is_some_and(|s| !s.trim().is_empty());
+            .filter(|s| !s.trim().is_empty())
+            .or_else(|| {
+                std::env::var("GROK_AGENT")
+                    .ok()
+                    .filter(|s| !s.trim().is_empty())
+            });
+        let agent_env_set = agent_env_name.is_some();
         let config_agent_explicitly_set = agent_config.name.is_some();
         let model_requires_strict_harness = model_agent_type
             .is_some_and(xai_grok_agent::config::is_strict_harness_agent_type);
-        if !grok_agent_env_set && !config_agent_explicitly_set
+        if !agent_env_set && !config_agent_explicitly_set
             && model_requires_strict_harness && let Some(required) = model_agent_type
             && let Some(def) = xai_grok_agent::discovery::by_name_in_cwd(required, cwd)
         {
@@ -2819,8 +2825,7 @@ impl MvpAgent {
                 name
             );
         }
-        let agent_name = std::env::var("GROK_AGENT").ok();
-        let resolved = match agent_name.as_deref() {
+        let resolved = match agent_env_name.as_deref() {
             Some("browser-use") | Some("browser_use") => AgentDefinition::browser_use(),
             Some("red-team") | Some("red_team") => AgentDefinition::red_team(),
             Some("grok-build-concise") | Some("grok_build_concise") => {
@@ -2844,7 +2849,7 @@ impl MvpAgent {
             }
             None => AgentDefinition::grok_build_plan(),
         };
-        if !grok_agent_env_set && !config_agent_explicitly_set
+        if !agent_env_set && !config_agent_explicitly_set
             && model_requires_strict_harness && let Some(required) = model_agent_type
             && resolved.name != required
         {

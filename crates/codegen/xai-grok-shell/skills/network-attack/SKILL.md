@@ -21,5 +21,5 @@ Prefer `nmap`, `netexec`/`crackmapexec`, Impacket scripts, BloodHound collectors
 ## Discipline
 
 - Avoid account lockouts; track attempt budgets.
-- Log every privilege edge in `.grok/redteam/attack-graph.md`.
+- Log every privilege edge in `.tyraxes/redteam/attack-graph.md`.
 - Cleanup temporary shares/tasks unless persistence was requested.
