@@ -214,6 +214,52 @@ name = "CodeLlama (Ollama)"
 
 Make sure Ollama is running (`ollama serve`) and the model is pulled (`ollama pull codellama`).
 
+For the red-team agent with stronger local anti-loop defaults:
+
+```toml
+[model.ollama-local]
+model = "qwen2.5-coder:32b"
+base_url = "http://localhost:11434/v1"
+name = "Ollama Local"
+context_window = 32768
+agent_type = "red-team"
+temperature = 0.2
+```
+
+### LM Studio (Local Models)
+
+Start the local server in [LM Studio](https://lmstudio.ai) (default port 1234):
+
+```toml
+[model.lmstudio-local]
+model = "local-model"
+base_url = "http://localhost:1234/v1"
+name = "LM Studio Local"
+context_window = 32768
+agent_type = "red-team"
+temperature = 0.2
+```
+
+### OpenRouter
+
+Route many frontier models through [OpenRouter](https://openrouter.ai):
+
+```toml
+[model.openrouter-sonnet]
+model = "anthropic/claude-sonnet-4"
+base_url = "https://openrouter.ai/api/v1"
+name = "Claude Sonnet (OpenRouter)"
+env_key = "OPENROUTER_API_KEY"
+api_backend = "chat_completions"
+context_window = 200000
+agent_type = "red-team"
+extra_headers = { "HTTP-Referer" = "https://x.ai/cli", "X-Title" = "Grok Red Team" }
+```
+
+Ready-made blocks for OpenAI, OpenRouter, Ollama, and LM Studio are also
+written to `~/.grok/providers.presets.toml` on startup. See
+[Grok Red Team](30-red-team.md).
+
 ### Together AI
 
 ```toml

@@ -2066,6 +2066,24 @@ impl SessionActor {
                 stop_reason == Some(xai_grok_sampling_types::StopReason::ContentFilter);
             let refusal_explanation = response.stop_message.clone();
             let final_answer_text = json_schema.is_some().then(|| response.assistant_text());
+            // Client-side anti-loop for local models: near-identical assistant
+            // narration without progress (common Ollama / LM Studio failure).
+            let text_loop_reminder = if tool_calls.is_empty() {
+                use crate::session::response_loop_guard::TextLoopIntervention;
+                let assistant_text = response.assistant_text();
+                if assistant_text.trim().is_empty() {
+                    None
+                } else {
+                    let mut state = self.state.lock().await;
+                    match state.response_loop_guard.observe(&assistant_text) {
+                        Some(TextLoopIntervention::Nudge(msg))
+                        | Some(TextLoopIntervention::HardStop(msg)) => Some(msg),
+                        None => None,
+                    }
+                }
+            } else {
+                None
+            };
             for item in response.items {
                 match item {
                     xai_grok_sampling_types::ConversationItem::Assistant(_) => {
@@ -2075,6 +2093,11 @@ impl SessionActor {
                         self.chat_state_handle.push_tool_result(item);
                     }
                 }
+            }
+            if let Some(msg) = text_loop_reminder {
+                tracing::warn!("response_loop_guard: intervening on repeated narration");
+                self.push_system_reminder(&msg);
+                continue;
             }
             if let Some(text) = fallback_text {
                 tracing::warn!(

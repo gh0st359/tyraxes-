@@ -285,6 +285,11 @@ pub(crate) struct State {
     /// switching models is a deliberate user action that resets
     /// expectations.
     pub(crate) nudges_used_this_session: u32,
+    /// Client-side repeated tool-call anti-loop guard (critical for local
+    /// models on Ollama / LM Studio that re-issue identical tool calls).
+    pub(crate) tool_loop_guard: crate::session::tool_loop_guard::ToolLoopGuard,
+    /// Client-side assistant-text anti-loop guard for near-identical narration.
+    pub(crate) response_loop_guard: crate::session::response_loop_guard::ResponseLoopGuard,
 }
 impl State {
     pub(crate) fn clear_pending_notifications(&mut self) {

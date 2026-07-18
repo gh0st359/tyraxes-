@@ -332,6 +332,50 @@ impl SessionActor {
                     },
                 )
                 .await;
+            // Client-side anti-loop: fingerprint identical tool calls (critical
+            // for local models that spiral on the same command).
+            {
+                use crate::session::tool_loop_guard::LoopIntervention;
+                let intervention = {
+                    let mut state = self.state.lock().await;
+                    state
+                        .tool_loop_guard
+                        .observe(&call.function.name, &call.function.arguments)
+                };
+                match intervention {
+                    Some(LoopIntervention::Nudge(msg)) => {
+                        tracing::warn!(
+                            tool = %call.function.name,
+                            "tool_loop_guard: nudge — repeated identical tool call"
+                        );
+                        deferred_followups.push(ConversationItem::system_reminder(msg));
+                    }
+                    Some(LoopIntervention::HardStop(msg)) => {
+                        tracing::warn!(
+                            tool = %call.function.name,
+                            "tool_loop_guard: hard stop — breaking identical tool-call loop"
+                        );
+                        let blocked = format!(
+                            "Blocked by anti-loop guard: repeated identical `{name}` call. \
+                             Pivot to a different action.",
+                            name = call.function.name
+                        );
+                        self.chat_state_handle.push_tool_result(ConversationItem::tool_result(
+                            call.id.clone(),
+                            blocked,
+                        ));
+                        deferred_followups.push(ConversationItem::system_reminder(msg));
+                        self.events.tool_finished();
+                        self.emit_event(crate::session::events::Event::ToolCompleted {
+                            tool_name: call.function.name.clone(),
+                            duration_ms: 0,
+                            outcome: crate::session::events::ToolOutcome::Error,
+                        });
+                        continue;
+                    }
+                    None => {}
+                }
+            }
             let call_name = call.function.name.clone();
             match self
                 .prepare_tool_call(call, &mut deferred_followups)

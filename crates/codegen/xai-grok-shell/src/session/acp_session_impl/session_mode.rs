@@ -98,6 +98,7 @@ impl SessionActor {
         }
         let agent_def = match session_mode_id.0.as_ref() {
             "browser_use" => Some(AgentDefinition::browser_use()),
+            "red-team" | "red_team" => Some(AgentDefinition::red_team()),
             name => {
                 let cwd = self.tool_context.cwd.as_path();
                 xai_grok_agent::discovery::by_name_in_cwd(name, cwd)

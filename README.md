@@ -10,11 +10,14 @@
   Grok Build (<code>grok</code>)
 </h1>
 
-**Grok Build** is SpaceXAI's terminal-based AI coding agent. It runs as a
+**Grok Build** is SpaceXAI's terminal-based AI agent. It runs as a
 full-screen TUI that understands your codebase, edits files, executes shell
 commands, searches the web, and manages long-running tasks — interactively,
 headlessly for scripting/CI, or embedded in editors via the Agent Client
-Protocol (ACP).
+Protocol (ACP). It also ships **Grok Red Team**, a first-class offensive
+security / pentest agent (`GROK_AGENT=red-team`) with provider presets
+(OpenAI, OpenRouter, Ollama, LM Studio), specialist subagents, methodology
+skills, and client-side anti-loop protocols for local models.
 
 [Installing the released binary](#installing-the-released-binary) ·
 [Building from source](#building-from-source) ·

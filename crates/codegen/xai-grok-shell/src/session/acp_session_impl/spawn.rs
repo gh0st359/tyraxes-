@@ -453,6 +453,8 @@ pub(crate) async fn spawn_session_actor(
         notifications_suppressed: false,
         rewindable: false,
         nudges_used_this_session: 0,
+            tool_loop_guard: Default::default(),
+            response_loop_guard: Default::default(),
     });
     let mcp_strategy = match std::env::var("MCP_INIT_STRATEGY") {
         Ok(v) if !v.trim().is_empty() => McpInitStrategy::from(v),
