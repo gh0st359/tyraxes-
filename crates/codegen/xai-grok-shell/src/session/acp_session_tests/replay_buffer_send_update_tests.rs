@@ -69,6 +69,8 @@ pub(super) async fn make_replay_send_update_fixture() -> ReplaySendUpdateFixture
         notifications_suppressed: false,
         rewindable: false,
         nudges_used_this_session: 0,
+            tool_loop_guard: Default::default(),
+            response_loop_guard: Default::default(),
     });
     let (event_tx, event_rx) = mpsc::unbounded_channel::<SessionEvent>();
     let actor = SessionActor {

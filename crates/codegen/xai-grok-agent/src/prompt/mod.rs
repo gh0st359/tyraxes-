@@ -2,6 +2,7 @@
 pub mod agents_md;
 pub mod context;
 pub mod ignore;
+pub mod red_team;
 pub mod skills;
 pub mod subagent_prompts;
 pub mod template;

@@ -11,6 +11,14 @@ pub const CHECK_SKILL_MD: &str = include_str!("../skills/check-work/SKILL.md");
 /// Compiled-in SKILL.md content for headless `--best-of-n` (not extracted as
 /// a bundled skill).
 pub const BEST_OF_N_SKILL_MD: &str = include_str!("../skills/best-of-n/SKILL.md");
+const RECON_SKILL_MD: &str = include_str!("../skills/recon/SKILL.md");
+const ADAPTIVE_OFFENSE_SKILL_MD: &str = include_str!("../skills/adaptive-offense/SKILL.md");
+const ENGAGEMENT_REPORTING_SKILL_MD: &str = include_str!("../skills/engagement-reporting/SKILL.md");
+const TOOL_ARSENAL_SKILL_MD: &str = include_str!("../skills/tool-arsenal/SKILL.md");
+const WEB_APP_ATTACK_SKILL_MD: &str = include_str!("../skills/web-app-attack/SKILL.md");
+const NETWORK_ATTACK_SKILL_MD: &str = include_str!("../skills/network-attack/SKILL.md");
+const PRIVILEGE_ESCALATION_SKILL_MD: &str = include_str!("../skills/privilege-escalation/SKILL.md");
+const PROVIDER_PRESETS_TOML: &str = include_str!("../providers/presets.toml");
 
 /// Legacy bundled skill names (renamed or removed).
 ///
@@ -58,6 +66,13 @@ const BUNDLED_SKILLS: &[(&str, &str)] = &[
     ("code-review", CODE_REVIEW_SKILL_MD),
     ("imagine", IMAGINE_SKILL_MD),
     ("check-work", CHECK_SKILL_MD),
+    ("recon", RECON_SKILL_MD),
+    ("adaptive-offense", ADAPTIVE_OFFENSE_SKILL_MD),
+    ("engagement-reporting", ENGAGEMENT_REPORTING_SKILL_MD),
+    ("tool-arsenal", TOOL_ARSENAL_SKILL_MD),
+    ("web-app-attack", WEB_APP_ATTACK_SKILL_MD),
+    ("network-attack", NETWORK_ATTACK_SKILL_MD),
+    ("privilege-escalation", PRIVILEGE_ESCALATION_SKILL_MD),
 ];
 
 /// True when a discovered skill is the copy `extract_bundled_files` wrote to
@@ -139,8 +154,24 @@ pub fn extract_bundled_files(grok_home: &std::path::Path) {
         }
     }
 
+    extract_provider_presets(grok_home);
+
     let _ = std::fs::write(&marker, version);
     tracing::debug!(version, "Extracted bundled files");
+}
+
+/// Write OpenRouter / Ollama / LM Studio / OpenAI provider presets if missing.
+///
+/// Never overwrites an existing file — operators may customize it.
+fn extract_provider_presets(grok_home: &std::path::Path) {
+    let path = grok_home.join("providers.presets.toml");
+    if path.exists() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(grok_home);
+    if let Err(e) = std::fs::write(&path, PROVIDER_PRESETS_TOML) {
+        tracing::debug!(error = %e, "Failed to write providers.presets.toml");
+    }
 }
 
 /// Extract only missing skill SKILL.md files (same-version fast path).
@@ -155,6 +186,7 @@ fn extract_missing_skills(grok_home: &std::path::Path) {
         let content = resolve_skill_content(name, raw, grok_home);
         let _ = std::fs::write(&skill_md, content);
     }
+    extract_provider_presets(grok_home);
 }
 
 /// Remove directories for legacy/renamed bundled skills (e.g. old `check`

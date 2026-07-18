@@ -225,7 +225,43 @@ fn native_toolset_presets() -> Vec<(&'static str, ToolServerConfig)> {
         ("explore", explore_toolset()),
         ("plan", plan_toolset()),
         ("grok-computer", grok_computer_toolset()),
+        ("red-team", red_team_toolset()),
     ]
+}
+/// Full offensive-security toolset for the `red-team` agent.
+///
+/// Curated (`inject_default_tools = false` on the definition) so the harness is
+/// strict and model `agent_type = "red-team"` rebuilds correctly. Includes
+/// shell, files, search, web, subagents, todos, monitors, and MCP discovery.
+fn red_team_toolset() -> ToolServerConfig {
+    ToolServerConfig {
+        tools: vec![
+            bash_tool_config(),
+            (&grok_build::ReadFileTool).into(),
+            (&grok_build::SearchReplaceTool).into(),
+            (&opencode::OpenCodeWriteTool).into(),
+            (&grok_build::ListDirTool).into(),
+            (&grok_build::GrepTool).into(),
+            kill_task_tool_config(),
+            (&grok_build::TodoWriteTool).into(),
+            task_output_tool_config(),
+            wait_tasks_tool_config(),
+            task_tool_config(),
+            (&grok_build::SchedulerCreateTool).into(),
+            (&grok_build::SchedulerDeleteTool).into(),
+            (&grok_build::SchedulerListTool).into(),
+            (&grok_build::MonitorTool).into(),
+            (&search_tool::SearchTool).into(),
+            (&use_tool::UseTool).into(),
+            (&grok_build::UpdateGoalTool).into(),
+            (&grok_build::AskUserQuestionTool).into(),
+            (&grok_build::WebSearchTool).into(),
+            (&grok_build::WebFetchTool).into(),
+            (&memory::MemorySearchImpl).into(),
+            (&memory::MemoryGetImpl).into(),
+        ],
+        behavior_preset: None,
+    }
 }
 /// Every named **public** toolset preset (native + externally registered public
 /// presets), as `(name, config)` pairs. Harness-internal registered presets are
@@ -647,9 +683,10 @@ where
 /// are defined in exactly one place. The enum covers all built-in
 /// agents for centralized name management and `by_name()` dispatch.
 ///
-/// `subagent_variants()` returns only the 3 that are exposed to the LLM
-/// via the `TaskTool` description. The remaining 6 are top-level agent
-/// profiles resolvable by name but not advertised as subagent types.
+/// `subagent_variants()` returns only the stock coding subagents exposed to
+/// the LLM via the `TaskTool` description. Remaining variants are top-level
+/// agent profiles (and red-team specialists) resolvable by name; red-team
+/// specialists are also advertised when the parent agent allows them.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Display, EnumString, EnumIter, AsRefStr, IntoStaticStr,
 )]
@@ -668,6 +705,18 @@ pub enum BuiltinAgentName {
     BrowserUse,
     #[strum(serialize = "grok-build-orchestrator")]
     GrokBuildOrchestrator,
+    /// Primary offensive-security / red-team terminal agent.
+    RedTeam,
+    /// External/internal recon specialist (subagent + top-level).
+    Recon,
+    /// Vulnerability triage specialist.
+    #[strum(serialize = "vuln-triage")]
+    VulnTriage,
+    /// Exploit development / PoC specialist.
+    #[strum(serialize = "exploit-dev")]
+    ExploitDev,
+    /// Findings and report writing specialist.
+    Reporting,
 }
 /// Strict-harness predicate by name. Resolves via `BuiltinAgentName` and
 /// delegates to [`AgentDefinition::is_strict_harness`]; unknown names
@@ -696,11 +745,27 @@ impl BuiltinAgentName {
             Self::Plan => AgentDefinition::plan(),
             Self::BrowserUse => AgentDefinition::browser_use(),
             Self::GrokBuildOrchestrator => AgentDefinition::grok_build_orchestrator(),
+            Self::RedTeam => AgentDefinition::red_team(),
+            Self::Recon => AgentDefinition::recon(),
+            Self::VulnTriage => AgentDefinition::vuln_triage(),
+            Self::ExploitDev => AgentDefinition::exploit_dev(),
+            Self::Reporting => AgentDefinition::reporting(),
         }
     }
     /// Built-in agents available as subagents via the Task tool.
+    ///
+    /// Includes the stock coding trio plus red-team specialists. Parent
+    /// agents can still restrict the roster via `allowed_subagent_types`.
     pub fn subagent_variants() -> &'static [Self] {
-        &[Self::GeneralPurpose, Self::Explore, Self::Plan]
+        &[
+            Self::GeneralPurpose,
+            Self::Explore,
+            Self::Plan,
+            Self::Recon,
+            Self::VulnTriage,
+            Self::ExploitDev,
+            Self::Reporting,
+        ]
     }
 }
 /// Portable agent identity — parsed from .grok/agents/*.md.
@@ -1573,6 +1638,99 @@ impl AgentDefinition {
             )
         }
     }
+    /// Primary offensive-security / red-team terminal agent.
+    ///
+    /// Strict harness (`inject_default_tools = false`) so model
+    /// `agent_type = "red-team"` forces a harness rebuild. Full prompt
+    /// replaces the coding-agent base template.
+    pub fn red_team() -> Self {
+        Self {
+            prompt_mode: PromptMode::Full,
+            tool_config: red_team_toolset(),
+            inject_default_tools: false,
+            permission_mode: PermissionMode::BypassPermissions,
+            agents_md: true,
+            skills: vec![
+                "recon".into(),
+                "adaptive-offense".into(),
+                "engagement-reporting".into(),
+                "tool-arsenal".into(),
+                "web-app-attack".into(),
+                "network-attack".into(),
+                "privilege-escalation".into(),
+            ],
+            prompt_body: Some(crate::prompt::red_team::RED_TEAM_SYSTEM_PROMPT.to_string()),
+            ..Self::base(
+                BuiltinAgentName::RedTeam,
+                "Offensive security, red-team, and penetration-testing terminal agent.",
+            )
+        }
+    }
+    /// Recon specialist — asset discovery and attack-surface mapping.
+    pub fn recon() -> Self {
+        Self {
+            description: "Reconnaissance specialist for asset discovery and attack-surface mapping."
+                .to_string(),
+            tool_config: red_team_toolset(),
+            inject_default_tools: false,
+            permission_mode: PermissionMode::BypassPermissions,
+            prompt_body: Some(crate::prompt::red_team::RECON_PROMPT.to_string()),
+            inherit_skills: true,
+            skills: vec!["recon".into(), "tool-arsenal".into(), "network-attack".into()],
+            ..Self::base(BuiltinAgentName::Recon, "")
+        }
+    }
+    /// Vulnerability triage specialist.
+    pub fn vuln_triage() -> Self {
+        Self {
+            description:
+                "Vulnerability triage specialist — ranks exploitability and drafts proof plans."
+                    .to_string(),
+            tool_config: red_team_toolset(),
+            inject_default_tools: false,
+            permission_mode: PermissionMode::BypassPermissions,
+            prompt_body: Some(crate::prompt::red_team::VULN_TRIAGE_PROMPT.to_string()),
+            inherit_skills: true,
+            skills: vec![
+                "adaptive-offense".into(),
+                "web-app-attack".into(),
+                "tool-arsenal".into(),
+            ],
+            ..Self::base(BuiltinAgentName::VulnTriage, "")
+        }
+    }
+    /// Exploit development / PoC specialist.
+    pub fn exploit_dev() -> Self {
+        Self {
+            description: "Exploit development specialist — scoped PoCs and reliability hardening."
+                .to_string(),
+            tool_config: red_team_toolset(),
+            inject_default_tools: false,
+            permission_mode: PermissionMode::BypassPermissions,
+            prompt_body: Some(crate::prompt::red_team::EXPLOIT_DEV_PROMPT.to_string()),
+            inherit_skills: true,
+            skills: vec![
+                "adaptive-offense".into(),
+                "privilege-escalation".into(),
+                "tool-arsenal".into(),
+            ],
+            ..Self::base(BuiltinAgentName::ExploitDev, "")
+        }
+    }
+    /// Reporting specialist — findings and engagement writeups.
+    pub fn reporting() -> Self {
+        Self {
+            description: "Reporting specialist — findings writeups, severity, and remediations."
+                .to_string(),
+            tool_config: red_team_toolset(),
+            inject_default_tools: false,
+            permission_mode: PermissionMode::BypassPermissions,
+            prompt_body: Some(crate::prompt::red_team::REPORTING_PROMPT.to_string()),
+            inherit_skills: true,
+            skills: vec!["engagement-reporting".into()],
+            ..Self::base(BuiltinAgentName::Reporting, "")
+        }
+    }
     /// Grok Build Orchestrator — GBL model with full GrokBuild tools
     /// (skills, MCPs, plan mode) that delegates coding/exploration to
     /// subagents.
@@ -1647,6 +1805,8 @@ mod tests {
             "plan",
             "grok-computer",
             "grok_computer",
+            "red-team",
+            "red_team",
         ] {
             assert!(
                 toolset_for_preset(name).is_some(),
@@ -1770,7 +1930,13 @@ mod tests {
     /// until classified.
     fn expected_strict_harness(name: BuiltinAgentName) -> bool {
         match name {
-            BuiltinAgentName::Codex | BuiltinAgentName::GrokBuildOrchestrator => true,
+            BuiltinAgentName::Codex
+            | BuiltinAgentName::GrokBuildOrchestrator
+            | BuiltinAgentName::RedTeam
+            | BuiltinAgentName::Recon
+            | BuiltinAgentName::VulnTriage
+            | BuiltinAgentName::ExploitDev
+            | BuiltinAgentName::Reporting => true,
             BuiltinAgentName::GrokBuild
             | BuiltinAgentName::GrokBuildConcise
             | BuiltinAgentName::GrokBuildPlan
@@ -1801,7 +1967,15 @@ mod tests {
     }
     #[test]
     fn is_strict_harness_agent_type_classifies_by_name() {
-        for strict in ["codex", "grok-build-orchestrator"] {
+        for strict in [
+            "codex",
+            "grok-build-orchestrator",
+            "red-team",
+            "recon",
+            "vuln-triage",
+            "exploit-dev",
+            "reporting",
+        ] {
             assert!(
                 is_strict_harness_agent_type(strict),
                 "{strict} should be strict"
@@ -2153,6 +2327,24 @@ completionRequirement:
         assert_eq!(recovery.max_delay_ms, 60000);
     }
     #[test]
+    fn test_builtin_red_team() {
+        use std::str::FromStr;
+        let def = AgentDefinition::red_team();
+        assert_eq!(def.name, "red-team");
+        assert_eq!(def.prompt_mode, PromptMode::Full);
+        assert!(!def.inject_default_tools);
+        assert!(def.is_strict_harness());
+        assert_eq!(def.permission_mode, PermissionMode::BypassPermissions);
+        assert!(def.prompt_body.as_deref().unwrap().contains("Grok Red Team"));
+        assert!(toolset_for_preset("red-team").is_some());
+        for specialist in ["recon", "vuln-triage", "exploit-dev", "reporting"] {
+            assert!(
+                BuiltinAgentName::from_str(specialist).is_ok(),
+                "{specialist} should resolve"
+            );
+        }
+    }
+    #[test]
     fn test_builtin_browser_use() {
         let def = AgentDefinition::browser_use();
         assert_eq!(def.name, "browser-use");
@@ -2453,10 +2645,14 @@ description: Test default tool config
     #[test]
     fn test_builtin_agent_name_subagent_variants() {
         let variants = BuiltinAgentName::subagent_variants();
-        assert_eq!(variants.len(), 3);
+        assert_eq!(variants.len(), 7);
         assert!(variants.contains(&BuiltinAgentName::GeneralPurpose));
         assert!(variants.contains(&BuiltinAgentName::Explore));
         assert!(variants.contains(&BuiltinAgentName::Plan));
+        assert!(variants.contains(&BuiltinAgentName::Recon));
+        assert!(variants.contains(&BuiltinAgentName::VulnTriage));
+        assert!(variants.contains(&BuiltinAgentName::ExploitDev));
+        assert!(variants.contains(&BuiltinAgentName::Reporting));
     }
     #[test]
     fn test_all_builtins_have_inherit_model() {

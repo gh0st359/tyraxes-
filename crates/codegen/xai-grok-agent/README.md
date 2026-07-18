@@ -277,6 +277,11 @@ user-level definition with the same name.
 |---|---|---|
 | `grok-build` | extend | Default agent for software engineering tasks |
 | `browser-use` | full | Web browsing and interaction agent |
+| `red-team` | full | Offensive security / red-team / pentest terminal agent |
+| `recon` | extend | Recon specialist subagent |
+| `vuln-triage` | extend | Vulnerability triage specialist subagent |
+| `exploit-dev` | extend | Exploit / PoC specialist subagent |
+| `reporting` | extend | Findings & report specialist subagent |
 
 ## Error Handling
 

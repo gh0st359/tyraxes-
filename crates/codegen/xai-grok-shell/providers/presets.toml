@@ -1,0 +1,108 @@
+# Grok Red Team — provider presets
+#
+# Copy selected [model.*] blocks into ~/.grok/config.toml (or merge via
+# `grok` config tooling). Set API keys in the environment — do not commit secrets.
+#
+# Activate the offensive agent with either:
+#   [agent]
+#   name = "red-team"
+# or per-model:
+#   agent_type = "red-team"
+
+[agent]
+name = "red-team"
+system_prompt_label = "Grok Red Team"
+
+# ── OpenAI ──────────────────────────────────────────────────────────────
+[model.openai-gpt-4o]
+model = "gpt-4o"
+base_url = "https://api.openai.com/v1"
+name = "GPT-4o (OpenAI)"
+description = "OpenAI Chat Completions"
+env_key = "OPENAI_API_KEY"
+api_backend = "chat_completions"
+context_window = 128000
+agent_type = "red-team"
+temperature = 0.3
+
+[model.openai-gpt-4o-responses]
+model = "gpt-4o"
+base_url = "https://api.openai.com/v1"
+name = "GPT-4o Responses (OpenAI)"
+env_key = "OPENAI_API_KEY"
+api_backend = "responses"
+context_window = 128000
+agent_type = "red-team"
+temperature = 0.3
+
+# ── OpenRouter ──────────────────────────────────────────────────────────
+[model.openrouter-sonnet]
+model = "anthropic/claude-sonnet-4"
+base_url = "https://openrouter.ai/api/v1"
+name = "Claude Sonnet (OpenRouter)"
+description = "OpenRouter → Anthropic Claude"
+env_key = "OPENROUTER_API_KEY"
+api_backend = "chat_completions"
+context_window = 200000
+agent_type = "red-team"
+temperature = 0.3
+extra_headers = { "HTTP-Referer" = "https://x.ai/cli", "X-Title" = "Grok Red Team" }
+
+[model.openrouter-gpt-oss]
+model = "openai/gpt-4o"
+base_url = "https://openrouter.ai/api/v1"
+name = "GPT-4o (OpenRouter)"
+env_key = "OPENROUTER_API_KEY"
+api_backend = "chat_completions"
+context_window = 128000
+agent_type = "red-team"
+temperature = 0.3
+extra_headers = { "HTTP-Referer" = "https://x.ai/cli", "X-Title" = "Grok Red Team" }
+
+# ── Ollama (local) ──────────────────────────────────────────────────────
+# Ensure `ollama serve` is running and the model is pulled.
+[model.ollama-local]
+model = "qwen2.5-coder:32b"
+base_url = "http://localhost:11434/v1"
+name = "Ollama Local"
+description = "Local Ollama OpenAI-compatible endpoint"
+api_backend = "chat_completions"
+context_window = 32768
+agent_type = "red-team"
+temperature = 0.2
+# Stronger anti-loop defaults pair well with local models (client-side guards
+# are always on; keep max_turns bounded for safety nets).
+max_completion_tokens = 8192
+
+[model.ollama-llama]
+model = "llama3.3:70b"
+base_url = "http://localhost:11434/v1"
+name = "Llama 3.3 (Ollama)"
+api_backend = "chat_completions"
+context_window = 65536
+agent_type = "red-team"
+temperature = 0.2
+
+# ── LM Studio (local) ───────────────────────────────────────────────────
+# Start the local server in LM Studio (default port 1234).
+[model.lmstudio-local]
+model = "local-model"
+base_url = "http://localhost:1234/v1"
+name = "LM Studio Local"
+description = "LM Studio OpenAI-compatible local server"
+api_backend = "chat_completions"
+context_window = 32768
+agent_type = "red-team"
+temperature = 0.2
+max_completion_tokens = 8192
+
+# ── xAI direct (optional BYOK) ──────────────────────────────────────────
+[model.xai-grok-redteam]
+model = "grok-4"
+base_url = "https://api.x.ai/v1"
+name = "Grok (xAI) Red Team"
+env_key = ["XAI_API_KEY", "GROK_CODE_XAI_API_KEY"]
+api_backend = "chat_completions"
+context_window = 256000
+agent_type = "red-team"
+temperature = 0.3
