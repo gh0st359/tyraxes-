@@ -26,4 +26,4 @@ description: Privilege escalation methodology across Linux, Windows, containers,
 
 - Instance metadata, role assumption chains, pod SA tokens, node escape, pipeline secret inheritance.
 
-Save proofs under `.grok/redteam/artifacts/privesc/`.
+Save proofs under `.tyraxes/redteam/artifacts/privesc/`.

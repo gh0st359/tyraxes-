@@ -1,6 +1,7 @@
-# Grok Build User Guide
+# Tyraxes User Guide
 
-Learn how to install, configure, and extend Grok Build, the terminal-based AI coding assistant from SpaceXAI.
+Learn how to install, configure, and extend Tyraxes, the agentic offensive-security
+terminal agent (Grok Build compatibility surfaces still work).
 
 ---
 
@@ -20,7 +21,7 @@ Start here. These guides cover what you need on your first day.
 
 ## Tier 2: Core Feature Docs
 
-Customize and extend Grok Build.
+Customize and extend Tyraxes.
 
 | # | Document | Description |
 |---|----------|-------------|
@@ -30,7 +31,7 @@ Customize and extend Grok Build.
 | 9 | [Plugins](09-plugins.md) | Bundle and share skills, commands, agents, hooks, and MCP servers; install from marketplace sources |
 | 10 | [Hooks](10-hooks.md) | Lifecycle scripts and HTTP callbacks for pre- and post-tool-use events |
 | 11 | [Custom Models](11-custom-models.md) | Bring-your-own-key, OpenRouter, Ollama, LM Studio, and OpenAI-compatible endpoints |
-| 30 | [Grok Red Team](30-red-team.md) | Offensive security agent, providers, anti-loop, skills, and workflows |
+| 30 | [Tyraxes Red Team](30-red-team.md) | Offensive security agent, providers, anti-loop, skills, and workflows |
 | 12 | [Project Rules (AGENTS.md)](12-project-rules.md) | Per-directory AGENTS.md instructions and their precedence |
 | 13 | [Memory](13-memory.md) | Cross-session knowledge persistence with `/flush`, `/dream`, and hybrid search |
 
@@ -38,7 +39,7 @@ Customize and extend Grok Build.
 
 ## Tier 3: Advanced Usage Docs
 
-Automate, script, and integrate Grok Build with other systems.
+Automate, script, and integrate Tyraxes with other systems.
 
 | # | Document | Description |
 |---|----------|-------------|

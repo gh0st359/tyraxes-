@@ -29,4 +29,4 @@ Prefer chains over isolated mediums:
 
 - Change **layer**, not just flags.
 - Spawn `vuln-triage` or `exploit-dev` with a crisp brief.
-- Update `.grok/redteam/attack-graph.md` before retrying noise.
+- Update `.tyraxes/redteam/attack-graph.md` before retrying noise.

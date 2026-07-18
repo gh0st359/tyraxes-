@@ -1,17 +1,21 @@
-# Grok Red Team — provider presets
+# Tyraxes Red Team — provider presets
 #
-# Copy selected [model.*] blocks into ~/.grok/config.toml (or merge via
-# `grok` config tooling). Set API keys in the environment — do not commit secrets.
+# Copy selected [model.*] blocks into ~/.tyraxes/config.toml (or merge via
+# config tooling). Legacy ~/.grok/config.toml still works. Set API keys in the
+# environment — do not commit secrets.
 #
 # Activate the offensive agent with either:
 #   [agent]
 #   name = "red-team"
 # or per-model:
 #   agent_type = "red-team"
+# or env:
+#   export TYRAXES_AGENT=red-team   # preferred
+#   export GROK_AGENT=red-team      # compatibility
 
 [agent]
 name = "red-team"
-system_prompt_label = "Grok Red Team"
+system_prompt_label = "Tyraxes Red Team"
 
 # ── OpenAI ──────────────────────────────────────────────────────────────
 [model.openai-gpt-4o]
@@ -46,7 +50,7 @@ api_backend = "chat_completions"
 context_window = 200000
 agent_type = "red-team"
 temperature = 0.3
-extra_headers = { "HTTP-Referer" = "https://x.ai/cli", "X-Title" = "Grok Red Team" }
+extra_headers = { "HTTP-Referer" = "https://github.com/gh0st359/tyraxes-", "X-Title" = "Tyraxes Red Team" }
 
 [model.openrouter-gpt-oss]
 model = "openai/gpt-4o"
@@ -57,7 +61,7 @@ api_backend = "chat_completions"
 context_window = 128000
 agent_type = "red-team"
 temperature = 0.3
-extra_headers = { "HTTP-Referer" = "https://x.ai/cli", "X-Title" = "Grok Red Team" }
+extra_headers = { "HTTP-Referer" = "https://github.com/gh0st359/tyraxes-", "X-Title" = "Tyraxes Red Team" }
 
 # ── Ollama (local) ──────────────────────────────────────────────────────
 # Ensure `ollama serve` is running and the model is pulled.

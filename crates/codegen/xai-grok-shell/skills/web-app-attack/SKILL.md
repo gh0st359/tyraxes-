@@ -18,9 +18,9 @@ description: Web and API offensive methodology — recon, auth, injection, IDOR,
 ## Tooling
 
 ```bash
-httpx -l hosts.txt -title -tech-detect -status-code -o .grok/redteam/artifacts/web/httpx.txt
-nuclei -l alive.txt -o .grok/redteam/artifacts/web/nuclei.txt
-ffuf -u https://target/FUZZ -w wordlist.txt -o .grok/redteam/artifacts/web/ffuf.json
+httpx -l hosts.txt -title -tech-detect -status-code -o .tyraxes/redteam/artifacts/web/httpx.txt
+nuclei -l alive.txt -o .tyraxes/redteam/artifacts/web/nuclei.txt
+ffuf -u https://target/FUZZ -w wordlist.txt -o .tyraxes/redteam/artifacts/web/ffuf.json
 ```
 
 ## Notes

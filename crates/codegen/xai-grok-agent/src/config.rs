@@ -2335,7 +2335,7 @@ completionRequirement:
         assert!(!def.inject_default_tools);
         assert!(def.is_strict_harness());
         assert_eq!(def.permission_mode, PermissionMode::BypassPermissions);
-        assert!(def.prompt_body.as_deref().unwrap().contains("Grok Red Team"));
+        assert!(def.prompt_body.as_deref().unwrap().contains("Tyraxes Red Team"));
         assert!(toolset_for_preset("red-team").is_some());
         for specialist in ["recon", "vuln-triage", "exploit-dev", "reporting"] {
             assert!(

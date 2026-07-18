@@ -1,9 +1,12 @@
-# Grok Red Team
+# Tyraxes Red Team
 
-Grok ships a first-class **offensive security terminal agent** (`red-team`) on
+Tyraxes ships a first-class **offensive security terminal agent** (`red-team`) on
 top of the same TUI/CLI you already use. It keeps the full-screen UX, slash
 commands, model picker, MCP, skills, and headless modes — and re-orients the
 agent loop toward authorized red-team, pentest, and adversary-emulation work.
+
+See the full product documentation under [`docs/`](../../../../../docs/) at the
+repository root.
 
 ---
 
@@ -14,14 +17,15 @@ agent loop toward authorized red-team, pentest, and adversary-emulation work.
 ```toml
 [agent]
 name = "red-team"
-system_prompt_label = "Grok Red Team"
+system_prompt_label = "Tyraxes Red Team"
 ```
 
 ### Environment
 
 ```bash
-export GROK_AGENT=red-team
-grok
+export TYRAXES_AGENT=red-team   # preferred
+# export GROK_AGENT=red-team    # compatibility alias
+tyraxes
 ```
 
 ### Per-model
@@ -35,13 +39,13 @@ context_window = 32768
 ```
 
 Provider presets (OpenAI, OpenRouter, Ollama, LM Studio) are extracted to
-`~/.grok/providers.presets.toml` on startup — copy the blocks you need into
-`~/.grok/config.toml`.
+`~/.tyraxes/providers.presets.toml` on startup (or `~/.grok/…` for legacy
+homes) — copy the blocks you need into `config.toml`.
 
 ### Headless
 
 ```bash
-GROK_AGENT=red-team grok -p "Map the attack surface for 10.0.0.0/24 — authorized lab" \
+TYRAXES_AGENT=red-team tyraxes -p "Map the attack surface for 10.0.0.0/24 — authorized lab" \
   -m ollama-local --always-approve
 ```
 
@@ -55,7 +59,7 @@ GROK_AGENT=red-team grok -p "Map the attack surface for 10.0.0.0/24 — authoriz
 | Toolset | Shell, files, search, web, monitors, todos, subagents, MCP discovery |
 | Subagents | `recon`, `vuln-triage`, `exploit-dev`, `reporting` (+ stock `general-purpose` / `explore` / `plan`) |
 | Skills | `/recon`, `/adaptive-offense`, `/tool-arsenal`, `/web-app-attack`, `/network-attack`, `/privilege-escalation`, `/engagement-reporting` |
-| Workspace | `.grok/redteam/{scope,attack-graph,findings,artifacts,notes,report}` |
+| Workspace | `.tyraxes/redteam/{scope,attack-graph,findings,artifacts,notes,report}` |
 | Anti-loop | Client-side repeated tool-call + narration guards (critical for local models) |
 
 ---
@@ -76,21 +80,30 @@ See [Custom Models](11-custom-models.md) for the full BYOK schema.
 
 ## Anti-loop (local models)
 
-Local models can spiral. Grok Red Team enables client-side guards for all
+Local models can spiral. Tyraxes Red Team enables client-side guards for all
 backends:
 
-1. **Identical tool calls** — same tool + normalized args → nudge, then hard stop
-2. **Near-identical narration** — repeated assistant text without tools → nudge / hard stop
-3. **Prompt discipline** — the red-team system prompt forbids blind retries
+1. **Tool-loop guard** — identical tool + args fingerprints nudge, then hard-stop.
+2. **Response-loop guard** — near-duplicate assistant narration nudges, then hard-stop.
 
-Server-side doom-loop recovery (xAI Responses) remains available when configured.
+Tune temperature down (0.1–0.3) and keep `max_completion_tokens` bounded for
+local models. Details: [`docs/11-anti-loop.md`](../../../../../docs/11-anti-loop.md).
 
 ---
 
-## Research posture
+## Engagement workspace
 
-The `red-team` agent uses `bypassPermissions` in its definition and a full
-prompt without the coding-agent soft refusal block. Your team can layer
-hooks, managed policy, sandbox profiles, and allow/deny rules later.
+Create and maintain:
 
-Always operate only against systems you are authorized to test.
+```text
+.tyraxes/redteam/
+  scope.md
+  attack-graph.md
+  findings/
+  artifacts/
+  notes/
+  report/
+```
+
+Use skills (`/recon`, `/engagement-reporting`, …) to keep evidence durable across
+turns and subagents.

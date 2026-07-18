@@ -20,7 +20,7 @@ done
 
 1. Confirm binary exists and note version.
 2. Start with informational / low-impact modes.
-3. Save raw output under `.grok/redteam/artifacts/<phase>/`.
+3. Save raw output under `.tyraxes/redteam/artifacts/<phase>/`.
 4. Parse into notes/findings; update todos.
 5. Prefer one sharp command over speculative flag spam.
 
